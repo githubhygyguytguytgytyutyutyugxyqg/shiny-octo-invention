@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Kodak FZ45 — MP3 → MOV</title>
+<style>
+body { font-family: Arial, sans-serif; background:#111; color:#eee; text-align:center; padding:20px; }
+input, button { margin:10px; padding:10px; font-size:16px; border-radius:6px; border:1px solid #555; }
+button { background:#4caf50; color:#fff; cursor:pointer; }
+button:hover { background:#45a049; }
+video { margin-top:20px; max-width:90%; border:2px solid #444; border-radius:8px; }
+#status { margin-top:20px; font-weight:bold; }
+#progress-container { width: 80%; height: 20px; background:#333; border-radius:10px; margin:10px auto; }
+#progress-bar { width:0%; height:100%; background:#4caf50; border-radius:10px; }
+.file-info { font-size:14px; margin:5px 0; }
+</style>
+</head>
+<body>
+
+<h1>🎬 MP3 + Фото → MOV (Kodak FZ45)</h1>
+
+<input type="file" id="audioFile" accept="audio/*"><br>
+<input type="file" id="imageFile" accept="image/*"><br>
+<button id="convertBtn">Сделать MOV</button>
+<button id="resetBtn">Очистить</button>
+
+<div id="status">Ожидание...</div>
+<div id="progress-container"><div id="progress-bar"></div></div>
+
+<div class="file-info" id="audioInfo"></div>
+<div class="file-info" id="imageInfo"></div>
+
+<video id="preview" controls></video>
+<a id="downloadLink" style="display:none;">⬇ Скачать MOV</a>
+
+<script type="module">
+import { createFFmpeg, fetchFile } from "https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js";
+
+const ffmpeg = createFFmpeg({
+    log: true,
+    progress: p => {
+        if(p.ratio) document.getElementById("progress-bar").style.width = Math.floor(p.ratio*100) + "%";
+    }
+});
+
+const status = document.getElementById("status");
+const preview = document.getElementById("preview");
+const downloadLink = document.getElementById("downloadLink");
+const convertBtn = document.getElementById("convertBtn");
+const resetBtn = document.getElementById("resetBtn");
+const audioInfo = document.getElementById("audioInfo");
+const imageInfo = document.getElementById("imageInfo");
+const progressBar = document.getElementById("progress-bar");
+
+convertBtn.addEventListener("click", async () => {
+    const audioFile = document.getElementById("audioFile").files[0];
+    const imageFile = document.getElementById("imageFile").files[0];
+
+    if(!audioFile || !imageFile){
+        alert("Выбери MP3 и изображение!");
+        return;
+    }
+
+    audioInfo.innerText = `Аудио: ${audioFile.name} (${(audioFile.size/1024).toFixed(1)} KB)`;
+    imageInfo.innerText = `Изображение: ${imageFile.name} (${(imageFile.size/1024).toFixed(1)} KB)`;
+
+    status.innerText = "⏳ Загрузка FFmpeg (~100 MB)...";
+    convertBtn.disabled = true;
+    if(!ffmpeg.isLoaded()) await ffmpeg.load();
+
+    status.innerText = "⏳ Обработка файлов...";
+    ffmpeg.FS("writeFile","audio.mp3", await fetchFile(audioFile));
+    ffmpeg.FS("writeFile","image.png", await fetchFile(imageFile));
+
+    status.innerText = "⏳ Создание видео...";
+    await ffmpeg.run(
+        "-loop","1",
+        "-framerate","30",
+        "-i","image.png",
+        "-i","audio.mp3",
+        "-c:v","libx264",
+        "-preset","ultrafast",
+        "-profile:v","baseline",
+        "-level","3.1",
+        "-pix_fmt","yuv420p",
+        "-r","30",
+        "-c:a","aac",
+        "-b:a","192k",
+        "-shortest",
+        "-vf","scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2:black",
+        "output.mov"
+    );
+
+    status.innerText = "✅ Готово!";
+    const data = ffmpeg.FS("readFile","output.mov");
+    const url = URL.createObjectURL(new Blob([data.buffer],{type:"video/quicktime"}));
+
+    preview.src = url;
+    downloadLink.href = url;
+    downloadLink.download = "kodak.mov";
+    downloadLink.style.display = "inline";
+    downloadLink.innerText = "⬇ Скачать MOV";
+    progressBar.style.width = "100%";
+    convertBtn.disabled = false;
+});
+
+resetBtn.addEventListener("click", () => {
+    document.getElementById("audioFile").value = "";
+    document.getElementById("imageFile").value = "";
+    preview.src = "";
+    downloadLink.style.display = "none";
+    audioInfo.innerText = "";
+    imageInfo.innerText = "";
+    status.innerText = "Ожидание...";
+    progressBar.style.width = "0%";
+});
+</script>
+
+</body>
+</html>
