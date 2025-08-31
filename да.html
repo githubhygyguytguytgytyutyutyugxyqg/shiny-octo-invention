@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultimate Mobile Hub</title>
+<style>
+body{margin:0;padding:0;font-family:Arial,sans-serif;background:#111;color:white;transition:0.3s;overflow-x:hidden;}
+header{position:fixed;top:0;width:100%;display:flex;justify-content:space-around;background:rgba(0,0,0,0.85);z-index:100;}
+header button{flex:1;margin:2px;background:#222;color:white;border:none;padding:10px;cursor:pointer;transition:0.3s;border-radius:10px;}
+header button.active{background:#0ff;color:#000;}
+.tab{display:none;padding:60px 10px 10px 10px;min-height:100vh;background-size:cover;background-position:center;transition:0.5s;}
+.tab.active{display:block;}
+input,select,button{padding:10px;margin:5px 0;border-radius:8px;border:none;width:100%;}
+button.action{background:#0ff;color:#000;cursor:pointer;transition:0.2s;border-radius:8px;}
+button.action:hover{transform:scale(1.05);}
+a{color:#0ff;text-decoration:none;}
+a:hover{text-decoration:underline;}
+#aiChat{display:flex;flex-direction:column;background:rgba(0,0,0,0.5);padding:10px;border-radius:10px;max-height:200px;overflow-y:auto;}
+.message{margin-bottom:8px;}
+.user{color:#0ff;font-weight:bold;}
+.ai{color:#ff0;font-weight:bold;}
+</style>
+</head>
+<body>
+
+<header>
+<button class="tabBtn active" data-tab="programs">Программы</button>
+<button class="tabBtn" data-tab="movies">Фильмы</button>
+<button class="tabBtn" data-tab="music">Музыка</button>
+<button class="tabBtn" data-tab="ai">AI</button>
+<button class="tabBtn" data-tab="settings">Настройки</button>
+</header>
+
+<!-- Программы -->
+<div id="programs" class="tab active" style="background-image:url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA...');">
+<h2>Поиск программ</h2>
+<input type="text" id="appName" placeholder="Название программы">
+<button class="action" onclick="searchApp()">Искать</button>
+<div id="results"></div>
+</div>
+
+<!-- Фильмы -->
+<div id="movies" class="tab" style="background-image:url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA...');">
+<h2>Поиск фильмов</h2>
+<input type="text" id="movieName" placeholder="Название фильма">
+<button class="action" onclick="searchMovie()">Искать</button>
+<div id="movieResults"></div>
+</div>
+
+<!-- Музыка -->
+<div id="music" class="tab" style="background-image:url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA...');">
+<h2>Поиск музыки</h2>
+<input type="text" id="musicName" placeholder="Название песни или исполнителя">
+<button class="action" onclick="searchMusic()">Искать</button>
+<div id="musicResults"></div>
+</div>
+
+<!-- AI -->
+<div id="ai" class="tab" style="background-image:url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA...');">
+<h2>AI-помощник</h2>
+<div id="aiChat"></div>
+<input type="text" id="aiInput" placeholder="Задайте вопрос" onkeypress="if(event.key==='Enter') sendAI()">
+<button class="action" onclick="sendAI()">Отправить</button>
+</div>
+
+<!-- Настройки -->
+<div id="settings" class="tab" style="background-image:url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA...');">
+<h2>Настройки</h2>
+<label>Обои:
+<select id="bgStyle" onchange="updateBackgrounds()">
+<option value="none">Без обоев</option>
+<option value="sonic">Sonic</option>
+<option value="ds">Death Stranding</option>
+<option value="both">Sonic + DS</option>
+</select>
+</label>
+<br>
+<label>Режим:
+<select id="mode" onchange="updateMode()">
+<option value="android">Android</option>
+<option value="pc">ПК</option>
+</select>
+</label>
+<br>
+<label>Звуки клика: <input type="checkbox" id="soundToggle" checked></label>
+<br>
+<label>Фоновая музыка: <input type="checkbox" id="musicToggle" checked onchange="toggleMusic()"></label>
+</div>
+
+<!-- Аудио -->
+<audio id="bgMusic" loop>
+<source src="data:audio/mpeg;base64,//uQxAA...">
+</audio>
+<audio id="clickSound">
+<source src="data:audio/mpeg;base64,//uQxAA...">
+</audio>
+
+<script>
+// Вкладки
+const tabBtns=document.querySelectorAll('.tabBtn');
+const tabs=document.querySelectorAll('.tab');
+tabBtns.forEach(btn=>{
+btn.addEventListener('click',()=>{
+if(document.getElementById('soundToggle').checked) document.getElementById('clickSound').play();
+tabBtns.forEach(b=>b.classList.remove('active'));
+btn.classList.add('active');
+tabs.forEach(t=>t.classList.remove('active'));
+document.getElementById(btn.dataset.tab).classList.add('active');
+});
+});
+
+// Обои
+const bgUrls={
+programs:{sonic:'data:image/png;base64,...',ds:'...',both:'...',none:''},
+movies:{sonic:'...',ds:'...',both:'...',none:''},
+music:{sonic:'...',ds:'...',both:'...',none:''},
+ai:{sonic:'...',ds:'...',both:'...',none:''}
+};
+function updateBackgrounds(){
+const style=document.getElementById('bgStyle').value;
+for(const tabId in bgUrls){
+document.getElementById(tabId).style.backgroundImage=bgUrls[tabId][style]?`url('${bgUrls[tabId][style]}')`:'';
+}
+}
+
+// Режим
+function updateMode(){document.body.style.fontSize=document.getElementById('mode').value==='pc'?'18px':'14px';}
+
+// Музыка
+function toggleMusic(){const m=document.getElementById('bgMusic');m.paused?m.play():m.pause();}
+
+// Программы
+function searchApp(){
+const name=document.getElementById('appName').value.trim();
+if(!name){alert('Введите название');return;}
+const encoded=encodeURIComponent(name);
+const sources=[
+{name:'Google Play',url:`https://play.google.com/store/search?q=${encoded}`},
+{name:'APKPure',url:`https://apkpure.com/search?q=${encoded}`},
+{name:'Uptodown',url:`https://www.uptodown.com/search?q=${encoded}`},
+{name:'APKMirror',url:`https://www.apkmirror.com/?s=${encoded}`},
+{name:'Aptoide',url:`https://en.aptoide.com/search?q=${encoded}`},
+{name:'F-Droid',url:`https://f-droid.org/en/packages/?q=${encoded}`}
+];
+let html='';
+sources.forEach(s=>html+=`<a href="${s.url}" target="_blank">${s.name}</a><br>`);
+document.getElementById('results').innerHTML=html;
+}
+
+// Фильмы
+function searchMovie(){
+const name=document.getElementById('movieName').value.trim();
+if(!name){alert('Введите название');return;}
+const encoded=encodeURIComponent(name);
+const sources=[
+{name:'ReYohoho',url:`https://reyohoho.github.io/?q=${encoded}`},
+{name:'123Movies',url:`https://123moviesgo.to/search/${encoded}`},
+{name:'FMovies',url:`https://fmovies.to/search/${encoded}`},
+{name:'GoMovies',url:`https://gomovies-online.cam/search/${encoded}`},
+{name:'Putlocker',url:`https://putlocker.vip/search/${encoded}`}
+];
+let html='';
+sources.forEach(s=>html+=`<a href="${s.url}" target="_blank">${s.name}</a><br>`);
+document.getElementById('movieResults').innerHTML=html;
+}
+
+// Музыка
+function searchMusic(){
+const name=document.getElementById('musicName').value.trim();
+if(!name){alert('Введите название');return;}
+const encoded=encodeURIComponent(name);
+const sources=[
+{name:'YouTube Music',url:`https://music.youtube.com/search?q=${encoded}`},
+{name:'SoundCloud',url:`https://soundcloud.com/search?q=${encoded}`},
+{name:'Bandcamp',url:`https://bandcamp.com/search?q=${encoded}`},
+{name:'Jamendo',url:`https://www.jamendo.com/search?q=${encoded}`},
+{name:'Free Music Archive',url:`https://freemusicarchive.org/search/?quicksearch=${encoded}`}
+];
+let html='';
+sources.forEach(s=>html+=`<a href="${s.url}" target="_blank">${s.name}</a><br>`);
+document.getElementById('musicResults').innerHTML=html;
+}
+
+// AI
+function sendAI(){
+const input=document.getElementById('aiInput').value.trim();
+if(!input){return;}
+const chat=document.getElementById('aiChat');
+const divUser=document.createElement('div'); divUser.textContent='Вы: '+input; divUser.className='message user'; chat.appendChild(divUser);
+const divAI=document.createElement('div'); divAI.textContent='AI: Привет! Я могу помогать, но пока простой.'; divAI.className='message ai'; chat.appendChild(divAI);
+document.getElementById('aiInput').value='';
+chat.scrollTop=chat.scrollHeight;
+}
+</script>
+</body>
+</html>
