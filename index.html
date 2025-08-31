@@ -10,7 +10,7 @@ button { background:#4caf50; color:#fff; cursor:pointer; }
 button:hover { background:#45a049; }
 video { margin-top:20px; max-width:90%; border:2px solid #444; border-radius:8px; }
 #status { margin-top:20px; font-weight:bold; }
-#progress-container { width: 80%; height: 20px; background:#333; border-radius:10px; margin:10px auto; }
+#progress-container { width:80%; height:20px; background:#333; border-radius:10px; margin:10px auto; }
 #progress-bar { width:0%; height:100%; background:#4caf50; border-radius:10px; }
 .file-info { font-size:14px; margin:5px 0; }
 </style>
@@ -64,32 +64,45 @@ convertBtn.addEventListener("click", async () => {
     audioInfo.innerText = `Аудио: ${audioFile.name} (${(audioFile.size/1024).toFixed(1)} KB)`;
     imageInfo.innerText = `Изображение: ${imageFile.name} (${(imageFile.size/1024).toFixed(1)} KB)`;
 
-    status.innerText = "⏳ Загрузка FFmpeg (~100 MB)...";
+    status.innerText = "⏳ Загрузка FFmpeg (~100MB)...";
     convertBtn.disabled = true;
-    if(!ffmpeg.isLoaded()) await ffmpeg.load();
+
+    try {
+        if(!ffmpeg.isLoaded()) await ffmpeg.load();
+    } catch(e) {
+        alert("Ошибка загрузки FFmpeg: " + e.message);
+        convertBtn.disabled = false;
+        return;
+    }
 
     status.innerText = "⏳ Обработка файлов...";
     ffmpeg.FS("writeFile","audio.mp3", await fetchFile(audioFile));
     ffmpeg.FS("writeFile","image.png", await fetchFile(imageFile));
 
     status.innerText = "⏳ Создание видео...";
-    await ffmpeg.run(
-        "-loop","1",
-        "-framerate","30",
-        "-i","image.png",
-        "-i","audio.mp3",
-        "-c:v","libx264",
-        "-preset","ultrafast",
-        "-profile:v","baseline",
-        "-level","3.1",
-        "-pix_fmt","yuv420p",
-        "-r","30",
-        "-c:a","aac",
-        "-b:a","192k",
-        "-shortest",
-        "-vf","scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2:black",
-        "output.mov"
-    );
+    try {
+        await ffmpeg.run(
+            "-loop","1",
+            "-framerate","30",
+            "-i","image.png",
+            "-i","audio.mp3",
+            "-c:v","libx264",
+            "-preset","ultrafast",
+            "-profile:v","baseline",
+            "-level","3.1",
+            "-pix_fmt","yuv420p",
+            "-r","30",
+            "-c:a","aac",
+            "-b:a","192k",
+            "-shortest",
+            "-vf","scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2:black",
+            "output.mov"
+        );
+    } catch(e){
+        alert("Ошибка конвертации: " + e.message);
+        convertBtn.disabled = false;
+        return;
+    }
 
     status.innerText = "✅ Готово!";
     const data = ffmpeg.FS("readFile","output.mov");
